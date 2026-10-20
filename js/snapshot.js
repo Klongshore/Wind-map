@@ -48,6 +48,13 @@
       tainted = true;
     }
 
+    // State and country outlines (Leaflet canvas renderer, same origin).
+    var overlays = container.querySelectorAll('.leaflet-borders-pane canvas');
+    for (var j = 0; j < overlays.length; j++) {
+      var ob = overlays[j].getBoundingClientRect();
+      ctx.drawImage(overlays[j], ob.left - rect.left, ob.top - rect.top, ob.width, ob.height);
+    }
+
     // Wind trails.
     ctx.drawImage(windCanvas, 0, 0, w, h);
 
@@ -63,11 +70,11 @@
     ctx.fillText(opts.subtitle, 12, h + CAPTION_H / 2 + 10);
 
     // Legend in the caption bar, right aligned.
-    var lw = Math.min(140, w * 0.25);
+    var lw = Math.min(140, w * 0.22);
     var lx = w - lw - 12;
     var ly = h + CAPTION_H / 2 - 4;
     var grad = ctx.createLinearGradient(lx, 0, lx + lw, 0);
-    for (var s = 0; s <= 10; s++) grad.addColorStop(s / 10, global.WindColors.rampColor(s / 10, 1));
+    for (var s = 0; s <= 10; s++) grad.addColorStop(s / 10, global.WindColors.trailColor(s / 10, opts.light));
     ctx.fillStyle = grad;
     ctx.fillRect(lx, ly, lw, 8);
     ctx.fillStyle = opts.light ? '#5a606b' : '#b8bcc4';

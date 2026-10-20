@@ -36,6 +36,24 @@
     crossOrigin: 'anonymous'
   }).addTo(map);
 
+  // State and country outlines, drawn on a canvas so they can be saved/printed.
+  map.createPane('borders');
+  map.getPane('borders').style.zIndex = 350;
+  map.getPane('borders').style.pointerEvents = 'none';
+  var borderRenderer = L.canvas({ pane: 'borders', padding: 0.5 });
+  var borders = L.layerGroup().addTo(map);
+  fetch('data/borders.json')
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      borders.addLayer(L.geoJSON({ type: 'MultiLineString', coordinates: data.countries }, {
+        renderer: borderRenderer, interactive: false, style: borderStyle(1.1)
+      }));
+      borders.addLayer(L.geoJSON({ type: 'MultiLineString', coordinates: data.states }, {
+        renderer: borderRenderer, interactive: false, style: borderStyle(0.7)
+      }));
+    })
+    .catch(function () { /* the map still works without outlines */ });
+
   var wind = new WindLayer().addTo(map);
   var field = null;
   var pending = null;
@@ -146,15 +164,27 @@
     var shot = WindSnapshot.snapshot(map, wind.canvas, {
       background: BACKGROUND[state.theme],
       light: state.theme === 'light',
-      title: 'Wind Map · ' + describeTime(field.time),
-      subtitle: 'Wind: Open-Meteo · Map: © Esri, HERE, Garmin, © OpenStreetMap contributors'
+      title: describeTime(field.time),
+      subtitle: 'Wind: Open-Meteo · Map: © Esri, OpenStreetMap'
     });
     if (shot.tilesDropped) setStatus('Map tiles could not be included; saved wind only.');
     return shot;
   }
 
+  function borderStyle(weight) {
+    return function () {
+      return {
+        color: state.theme === 'light' ? '#000' : '#fff',
+        opacity: state.theme === 'light' ? 0.45 : 0.4,
+        weight: weight
+      };
+    };
+  }
+
   function applyTheme(theme) {
     state.theme = theme;
+    wind.setLight(theme === 'light');
+    borders.eachLayer(function (layer) { layer.setStyle(layer.options.style); });
     document.body.classList.toggle('light', theme === 'light');
     tiles.setUrl(TILES[theme]);
     themeBtn.textContent = theme === 'dark' ? 'Light map' : 'Dark map';

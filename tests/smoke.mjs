@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const outDir = process.env.SMOKE_OUT || path.join(root, 'test-output');
 fs.mkdirSync(outDir, { recursive: true });
 
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 const server = http.createServer((req, res) => {
   const file = path.join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname));
   const target = file.endsWith(path.sep) ? path.join(file, 'index.html') : file;
@@ -94,6 +94,7 @@ try {
     });
     assert.ok(painted > 2000, `wind trails should be drawn (got ${painted} pixels)`);
 
+    await page.waitForFunction(() => document.querySelector('.leaflet-borders-pane canvas'), null, { timeout: 10000 });
     await page.screenshot({ path: path.join(outDir, `screen-${tag}.png`) });
 
     // Zoom in, the wind should come back after the move.
@@ -136,6 +137,8 @@ try {
     await page.click('#btn-theme');
     assert.ok(await page.evaluate(() => document.body.classList.contains('light')));
     assert.match(page.url(), /,light$/);
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(outDir, `screen-${tag}-light.png`) });
 
     assert.deepEqual(errors, []);
     await context.close();

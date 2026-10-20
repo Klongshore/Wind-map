@@ -12,32 +12,20 @@
   var MPH_PER_MS = 2.23694;
   var LEGEND_MAX_MPH = 40;
 
-  // Colour ramp matching the legend in the page (calm -> strong).
-  var RAMP = [
-    [79, 143, 214],
-    [70, 198, 165],
-    [232, 214, 74],
-    [240, 138, 60],
-    [226, 67, 59],
-    [177, 58, 209]
-  ];
-  var BUCKETS = 16;
+  // Black-and-white trails: faster wind draws brighter (or darker on the
+  // light map), like hint.fm/wind.
+  var BUCKETS = 12;
 
-  function rampColor(t, alpha) {
-    t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
-    var i = Math.min(Math.floor(t), RAMP.length - 2);
-    var f = t - i;
-    var a = RAMP[i];
-    var b = RAMP[i + 1];
-    return 'rgba(' +
-      Math.round(a[0] + (b[0] - a[0]) * f) + ',' +
-      Math.round(a[1] + (b[1] - a[1]) * f) + ',' +
-      Math.round(a[2] + (b[2] - a[2]) * f) + ',' + alpha + ')';
+  function trailColor(t, light) {
+    t = Math.max(0, Math.min(1, t));
+    var alpha = (0.25 + 0.75 * t).toFixed(2);
+    return light ? 'rgba(20,20,20,' + alpha + ')' : 'rgba(255,255,255,' + alpha + ')';
   }
 
-  var BUCKET_COLORS = [];
-  for (var b = 0; b < BUCKETS; b++) {
-    BUCKET_COLORS.push(rampColor(b / (BUCKETS - 1), 0.9));
+  function bucketColors(light) {
+    var colors = [];
+    for (var b = 0; b < BUCKETS; b++) colors.push(trailColor(b / (BUCKETS - 1), light));
+    return colors;
   }
 
   var WindLayer = L.Layer.extend({
@@ -49,6 +37,7 @@
       this._particles = [];
       this._grid = null;
       this._running = false;
+      this._colors = this._colors || bucketColors(false);
 
       map.on('movestart zoomstart', this._pause, this);
       map.on('moveend resize', this._rebuild, this);
@@ -60,6 +49,11 @@
       map.off('moveend resize', this._rebuild, this);
       this._stop();
       L.DomUtil.remove(this.canvas);
+    },
+
+    setLight: function (light) {
+      this._colors = bucketColors(light);
+      if (this._map) this._rebuild();
     },
 
     setField: function (field) {
@@ -198,7 +192,7 @@
       for (var bk = 0; bk < BUCKETS; bk++) {
         var segs = paths[bk];
         if (!segs.length) continue;
-        ctx.strokeStyle = BUCKET_COLORS[bk];
+        ctx.strokeStyle = this._colors[bk];
         ctx.beginPath();
         for (var s = 0; s < segs.length; s += 4) {
           ctx.moveTo(segs[s], segs[s + 1]);
@@ -213,5 +207,5 @@
   });
 
   global.WindLayer = WindLayer;
-  global.WindColors = { rampColor: rampColor, MPH_PER_MS: MPH_PER_MS, LEGEND_MAX_MPH: LEGEND_MAX_MPH };
+  global.WindColors = { trailColor: trailColor, MPH_PER_MS: MPH_PER_MS, LEGEND_MAX_MPH: LEGEND_MAX_MPH };
 })(window);

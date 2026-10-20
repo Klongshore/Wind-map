@@ -116,7 +116,13 @@ body.light #map { background: #e9ebee; }
   width: 90px;
   height: 8px;
   border-radius: 4px;
-  background: linear-gradient(to right, #4f8fd6, #46c6a5, #e8d64a, #f08a3c, #e2433b, #b13ad1);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.25), #fff);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.light .legend-bar {
+  background: linear-gradient(to right, rgba(20, 20, 20, 0.25), #141414);
+  border-color: rgba(0, 0, 0, 0.3);
 }
 
 .leaflet-container .leaflet-control-attribution {
