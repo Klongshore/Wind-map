@@ -11,7 +11,7 @@ interface ViewState {
   theme: Theme;
 }
 
-// data/borders.json, as written by data/build-borders.cjs.
+// data/borders.json, as written by data/build-borders.ts.
 interface Borders {
   countries: GeoJSON.Position[][];
   states: GeoJSON.Position[][];
