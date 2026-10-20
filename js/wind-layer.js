@@ -9,10 +9,10 @@
 
   var CELL = 6;              // px size of the screen-space velocity lookup grid
   var SPEED_SCALE = 0.12;    // px per step for each m/s of wind
-  var SAMPLE = 3;            // steps between remembered trail points
-  var TRAIL = 45;            // trail points kept per particle
+  var SAMPLE = 6;            // steps between remembered trail points
+  var TRAIL = 28;            // trail points kept per particle
   var MAX_AGE = 600;         // steps before a particle is respawned
-  var SECTIONS = 4;          // trail drawn in parts, fainter towards the tail
+  var SECTIONS = 3;          // trail drawn in parts, fainter towards the tail
   var MPH_PER_MS = 2.23694;
   var LEGEND_MAX_MPH = 40;
 
@@ -158,7 +158,7 @@
 
     _spawnAll: function () {
       var area = this._w * this._h;
-      var count = Math.round(Math.min(2500, Math.max(600, area / 450)));
+      var count = Math.round(Math.min(4500, Math.max(1500, area / 180)));
       this._particles = new Array(count);
       for (var i = 0; i < count; i++) {
         this._particles[i] = this._spawn({
@@ -191,9 +191,11 @@
 
     _tick: function () {
       if (!this._running) return;
-      // Step every other display frame: slower, calmer motion and half the work.
+      // Redraw every other display frame (half the drawing work) and move the
+      // particles two steps each time.
       this._odd = !this._odd;
       if (this._odd) {
+        this._step();
         this._step();
         this._draw();
       }
@@ -231,7 +233,7 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.setTransform(this._dpr, 0, 0, this._dpr, 0, 0);
-      ctx.lineWidth = 1.4;
+      ctx.lineWidth = 1.2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
