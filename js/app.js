@@ -8,7 +8,7 @@
     light: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
   };
   var TILE_ATTRIBUTION =
-    'Wind: <a href="https://open-meteo.com/">Open-Meteo</a> | ' +
+    'Wind: <a href="https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast">NOAA GFS</a> | ' +
     'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; OSM';
   var BACKGROUND = { dark: '#202226', light: '#e9ebee' };
 
@@ -191,7 +191,7 @@
       background: BACKGROUND[state.theme],
       light: state.theme === 'light',
       title: describeTime(field.time),
-      subtitle: 'Wind: Open-Meteo · Map: © Esri, OpenStreetMap'
+      subtitle: 'Wind: ' + (field.fromFile ? 'NOAA GFS' : 'Open-Meteo') + ' · Map: © Esri, OpenStreetMap'
     });
     if (shot.tilesDropped) setStatus('Map tiles could not be included; saved wind only.');
     return shot;
