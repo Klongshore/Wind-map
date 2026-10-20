@@ -1,0 +1,21 @@
+{
+  // Compiles src/*.ts to js/*.js as native ES modules the browser loads
+  // directly (no bundler). Leaflet stays a classic script and is used through
+  // its global `L`, typed by @types/leaflet.
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": ["leaflet"],
+    "allowUmdGlobalAccess": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "rootDir": "src",
+    "outDir": "js"
+  },
+  "include": ["src"]
+}

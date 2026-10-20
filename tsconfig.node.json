@@ -1,0 +1,21 @@
+{
+  // Type-checks the Node scripts (tests/, data/build-borders.ts). Node runs
+  // them directly by stripping the types, so nothing is emitted, and they may
+  // only use type syntax that can be erased (no enums or namespaces).
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["tests", "data/build-borders.ts"]
+}

@@ -32,6 +32,11 @@ jobs:
           python-version: '3.12'
       - run: pip install -r scripts/requirements.txt
       - run: python scripts/fetch_wind.py data
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
       - name: Collect site files
         run: |
           mkdir _site
