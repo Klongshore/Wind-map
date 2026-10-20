@@ -37,6 +37,10 @@ python3 -m http.server 8000
 
 `npm run typecheck` checks the types without writing any files.
 
+The test and the borders build script (`data/build-borders.ts`) are TypeScript
+too. Node 22.18 or newer runs them directly by stripping the types, with no
+compile step; `npm run build:borders` regenerates `data/borders.json`.
+
 To use the NOAA data locally, first run
 `pip install -r scripts/requirements.txt && python3 scripts/fetch_wind.py data`.
 
