@@ -1,0 +1,7 @@
+# Pinned so the scheduled build doesn't pick up a new (or compromised) release
+# on its own. Includes pygrib's own dependencies.
+numpy==2.5.4
+pygrib==2.1.8
+pyproj==3.8.0
+certifi==2026.10.19
+packaging==26.3

@@ -238,10 +238,11 @@
   function loadState() {
     var s = { lat: 39, lng: -96, zoom: 4, theme: 'dark' };
     var m = /^#(-?[\d.]+),(-?[\d.]+),([\d.]+)z(?:,(light|dark))?/.exec(location.hash);
-    if (m) {
-      s.lat = +m[1];
+    // The pattern also lets through things like "1.2.3", so check the numbers.
+    if (m && isFinite(m[1]) && isFinite(m[2]) && isFinite(m[3])) {
+      s.lat = Math.max(-85, Math.min(85, +m[1]));
       s.lng = +m[2];
-      s.zoom = +m[3];
+      s.zoom = Math.max(2, Math.min(12, +m[3]));
       if (m[4]) s.theme = m[4];
     }
     return s;
