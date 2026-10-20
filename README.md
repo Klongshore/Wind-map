@@ -12,8 +12,14 @@ Thousands of particles drift with the current surface wind, coloured from calm
 - **My location** jumps to where you are.
 - The address bar keeps the current view, so a copied link opens the same map.
 
-Wind data is the current 10 m wind from [Open-Meteo](https://open-meteo.com/)
-(free, no API key). Map tiles are Esri's grey canvas basemaps (no key needed).
+Wind data is NOAA's GFS global 10 m wind (0.5° grid, free, no key).
+`scripts/fetch_wind.py` downloads the latest run into `data/wind.json` and
+`data/wind.bin`, and the **Publish site** GitHub Actions workflow
+(`.github/workflows/pages.yml`) runs it every 3 hours and publishes the site to
+GitHub Pages. For that, set **Settings › Pages › Source** to **GitHub Actions**.
+If the wind file is missing (for example when running locally without it), the
+page falls back to asking [Open-Meteo](https://open-meteo.com/) for the area in
+view, which has a free usage limit. Map tiles are Esri's grey canvas basemaps (no key needed).
 
 ## Running it
 
@@ -25,7 +31,8 @@ python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-It also works as-is on GitHub Pages.
+To use the NOAA data locally, first run
+`pip install pygrib numpy && python3 scripts/fetch_wind.py data`.
 
 ## Tests
 

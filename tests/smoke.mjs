@@ -53,13 +53,27 @@ function windAt(lat, lng) {
   return { wind_speed_10m: speed, wind_direction_10m: dir };
 }
 
+// Synthetic global wind file in the format scripts/fetch_wind.py writes.
+const fileMeta = { time: '2026-10-20T06:00', south: -90, north: 90, west: -180, rows: 91, cols: 180, step: 0.5 };
+const fileBin = Buffer.alloc(2 * fileMeta.rows * fileMeta.cols);
+for (let r = 0; r < fileMeta.rows; r++) {
+  for (let c = 0; c < fileMeta.cols; c++) {
+    const w = windAt(-90 + r * 2, -180 + c * 2);
+    const rad = w.wind_direction_10m * Math.PI / 180;
+    const i = r * fileMeta.cols + c;
+    fileBin.writeInt8(Math.max(-127, Math.min(127, Math.round(-w.wind_speed_10m * Math.sin(rad) / 0.5))), i);
+    fileBin.writeInt8(Math.max(-127, Math.min(127, Math.round(-w.wind_speed_10m * Math.cos(rad) / 0.5))), fileMeta.rows * fileMeta.cols + i);
+  }
+}
+
 let apiCalls = 0;
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 try {
-  for (const { viewport, hash, tag } of [
+  for (const { viewport, hash, tag, windFile } of [
     { tag: 'desktop', viewport: { width: 1280, height: 800 }, hash: '' },
     { tag: 'phone', viewport: { width: 390, height: 844 }, hash: '' },
-    { tag: 'world', viewport: { width: 1600, height: 900 }, hash: '#20,170,2z' }
+    { tag: 'world', viewport: { width: 1600, height: 900 }, hash: '#20,170,2z' },
+    { tag: 'file', viewport: { width: 1280, height: 800 }, hash: '', windFile: true }
   ]) {
     const context = await browser.newContext({ viewport, acceptDownloads: true, deviceScaleFactor: 1 });
     const page = await context.newPage();
@@ -67,6 +81,14 @@ try {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.route('https://server.arcgisonline.com/**', (route) =>
       route.fulfill({ status: 200, contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile }));
+    // The global wind file: synthetic 2-degree grid, or missing so the page
+    // falls back to Open-Meteo.
+    await page.route('**/data/wind.json', (route) => windFile
+      ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fileMeta) })
+      : route.fulfill({ status: 404, body: '' }));
+    await page.route('**/data/wind.bin*', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/octet-stream', body: fileBin }));
+    const callsBefore = apiCalls;
     let refuse = false;
     await page.route('https://api.open-meteo.com/**', (route) => {
       apiCalls++;
@@ -122,7 +144,7 @@ try {
 
     // A refused request keeps the earlier wind on screen. (The world view
     // already has global data, so zooming out there needs no new request.)
-    if (tag !== 'world') {
+    if (tag !== 'world' && !windFile) {
       refuse = true;
       for (let i = 0; i < 3; i++) {
         await page.evaluate(() => document.querySelector('.leaflet-control-zoom-out').click());
@@ -152,6 +174,7 @@ try {
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(outDir, `screen-${tag}-light.png`) });
 
+    if (windFile) assert.equal(apiCalls, callsBefore, 'with the wind file, Open-Meteo should not be called');
     assert.deepEqual(errors, []);
     await context.close();
     console.log(`ok - ${tag}`);

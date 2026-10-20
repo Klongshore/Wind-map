@@ -21,3 +21,13 @@ jobs:
         with:
           name: screenshots
           path: test-output/
+
+  wind-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pygrib numpy
+      - run: python scripts/fetch_wind.py data

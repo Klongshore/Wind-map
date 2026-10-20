@@ -67,7 +67,9 @@
     saveState();
     scheduleFetch();
   });
-  scheduleFetch(0);
+  // Prefer the global wind file; fall back to asking Open-Meteo for the view.
+  loadWindFile(true);
+  setInterval(function () { loadWindFile(false); }, 30 * 60 * 1000);
 
   map.on('click', function (e) {
     if (!field) return;
@@ -142,8 +144,25 @@
     fetchTimer = setTimeout(loadWind, delay === undefined ? 350 : delay);
   }
 
+  function loadWindFile(firstTime) {
+    WindData.fetchFileField('data/')
+      .then(function (f) {
+        if (field && field.fromFile && field.time === f.time) return;
+        useField(f);
+      })
+      .catch(function () {
+        if (firstTime) scheduleFetch(0);
+      });
+  }
+
+  function useField(f) {
+    field = f;
+    wind.setField(f);
+    setStatus(describeTime(f.time));
+  }
+
   function loadWind() {
-    if (field && field.covers(map.getBounds())) return;
+    if (field && (field.fromFile || field.covers(map.getBounds()))) return;
     if (pending) pending.abort();
     var ctrl = new AbortController();
     pending = ctrl;
@@ -152,9 +171,7 @@
       .then(function (f) {
         if (pending !== ctrl) return;
         pending = null;
-        field = f;
-        wind.setField(f);
-        setStatus(describeTime(f.time));
+        useField(f);
       })
       .catch(function (err) {
         if (err.name === 'AbortError') return;

@@ -201,7 +201,45 @@
       });
   }
 
+  /*
+   * Loads the global wind file written by scripts/fetch_wind.py (refreshed on
+   * a schedule by GitHub Actions). One file covers the whole world, so the map
+   * never has to call the wind service as you move around.
+   */
+  function fetchFileField(base) {
+    return fetch(base + 'wind.json', { cache: 'no-cache' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('No wind file (' + res.status + ')');
+        return res.json();
+      })
+      .then(function (meta) {
+        return fetch(base + 'wind.bin?t=' + encodeURIComponent(meta.time))
+          .then(function (res) {
+            if (!res.ok) throw new Error('No wind file (' + res.status + ')');
+            return res.arrayBuffer();
+          })
+          .then(function (buf) {
+            var n = meta.rows * meta.cols;
+            var raw = new Int8Array(buf);
+            if (raw.length !== 2 * n) throw new Error('Wind file has the wrong size');
+            var u = new Float32Array(n);
+            var v = new Float32Array(n);
+            for (var i = 0; i < n; i++) {
+              u[i] = raw[i] * meta.step;
+              v[i] = raw[n + i] * meta.step;
+            }
+            var field = new WindField({
+              south: meta.south, north: meta.north, west: meta.west, east: meta.west + 360,
+              rows: meta.rows, cols: meta.cols, global: true, u: u, v: v, time: meta.time
+            });
+            field.fromFile = true;
+            return field;
+          });
+      });
+  }
+
   global.WindData = {
+    fetchFileField: fetchFileField,
     fetchField: fetchField,
     WindField: WindField,
     planGrid: planGrid,
