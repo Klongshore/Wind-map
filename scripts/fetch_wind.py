@@ -8,7 +8,7 @@ Writes two files into the output folder (default: data/):
 
 The GFS files come from NOAA's open data bucket on AWS. Only the two 10 m wind
 fields are downloaded (about 1 MB), using the byte ranges in the .idx index.
-Needs: pip install pygrib numpy
+Needs: pip install -r scripts/requirements.txt
 """
 import datetime as dt
 import json

@@ -32,7 +32,7 @@ python3 -m http.server 8000
 ```
 
 To use the NOAA data locally, first run
-`pip install pygrib numpy && python3 scripts/fetch_wind.py data`.
+`pip install -r scripts/requirements.txt && python3 scripts/fetch_wind.py data`.
 
 ## Tests
 

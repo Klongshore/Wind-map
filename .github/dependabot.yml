@@ -1,0 +1,28 @@
+# Opens weekly PRs to bump the pinned dependencies. Updates within each
+# ecosystem are grouped so there is at most one PR per ecosystem per week;
+# the Test workflow runs on each PR before you merge it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: pip
+    directory: /scripts
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ['*']
