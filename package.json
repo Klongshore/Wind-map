@@ -3,9 +3,13 @@
   "private": true,
   "description": "Animated wind map you can zoom, save as an image and print.",
   "scripts": {
-    "test": "node tests/smoke.mjs"
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "tsc -p . && node tests/smoke.mjs"
   },
   "devDependencies": {
-    "playwright": "1.56.1"
+    "@types/leaflet": "1.9.22",
+    "playwright": "1.56.1",
+    "typescript": "7.0.2"
   }
 }
