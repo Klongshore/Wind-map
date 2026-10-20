@@ -133,6 +133,18 @@ try {
       refuse = false;
     }
 
+    // Pause freezes the trails; play resumes them.
+    const frame = () => page.evaluate(() => document.querySelector('.wind-canvas').toDataURL());
+    await page.waitForTimeout(1000);
+    await page.click('#btn-pause');
+    assert.equal(await page.textContent('#btn-pause'), 'Play');
+    const still = await frame();
+    await page.waitForTimeout(300);
+    assert.equal(await frame(), still, 'paused wind should not move');
+    await page.click('#btn-pause');
+    await page.waitForTimeout(300);
+    assert.notEqual(await frame(), still, 'wind should move again after play');
+
     // Light theme toggles.
     await page.click('#btn-theme');
     assert.ok(await page.evaluate(() => document.body.classList.contains('light')));

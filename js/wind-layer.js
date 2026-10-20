@@ -6,7 +6,7 @@
   'use strict';
 
   var CELL = 6;              // px size of the screen-space velocity lookup grid
-  var FADE = 0.93;           // how much of each trail survives a frame
+  var FADE = 0.94;           // how much of each trail survives a frame
   var MAX_AGE = 90;          // frames before a particle is respawned
   var SPEED_SCALE = 0.22;    // px per frame for each m/s of wind
   var MPH_PER_MS = 2.23694;
@@ -18,7 +18,7 @@
 
   function trailColor(t, light) {
     t = Math.max(0, Math.min(1, t));
-    var alpha = (0.25 + 0.75 * t).toFixed(2);
+    var alpha = (0.4 + 0.6 * t).toFixed(2);
     return light ? 'rgba(20,20,20,' + alpha + ')' : 'rgba(255,255,255,' + alpha + ')';
   }
 
@@ -96,8 +96,23 @@
       if (!this._field) return;
       this._buildGrid();
       this._spawnAll();
+      if (this._paused) {
+        // Draw a still frame with full-length trails.
+        for (var f = 0; f < 60; f++) this._step();
+        return;
+      }
       this._running = true;
       this._tick();
+    },
+
+    setPaused: function (paused) {
+      this._paused = paused;
+      if (paused) {
+        this._stop();
+      } else if (this._map && this._field && !this._running) {
+        this._running = true;
+        this._tick();
+      }
     },
 
     // Precompute wind (in px/frame) for a coarse grid of screen positions.
@@ -130,7 +145,7 @@
 
     _spawnAll: function () {
       var area = this._w * this._h;
-      var count = Math.round(Math.min(6000, Math.max(800, area / 220)));
+      var count = Math.round(Math.min(6000, Math.max(800, area / 230)));
       this._particles = new Array(count);
       for (var i = 0; i < count; i++) {
         this._particles[i] = this._spawn({}, true);
@@ -155,6 +170,13 @@
 
     _tick: function () {
       if (!this._running) return;
+      this._step();
+      var self = this;
+      this._frame = requestAnimationFrame(function () { self._tick(); });
+    },
+
+    // Advances every particle one frame and draws the new trail segments.
+    _step: function () {
       var ctx = this._ctx;
       var dpr = this._dpr;
       var g = this._grid;
@@ -187,7 +209,7 @@
         p.y = ny;
       }
 
-      ctx.lineWidth = 1.1;
+      ctx.lineWidth = 1.5;
       ctx.lineCap = 'round';
       for (var bk = 0; bk < BUCKETS; bk++) {
         var segs = paths[bk];
@@ -200,9 +222,6 @@
         }
         ctx.stroke();
       }
-
-      var self = this;
-      this._frame = requestAnimationFrame(function () { self._tick(); });
     }
   });
 

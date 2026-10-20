@@ -147,6 +147,7 @@ body.light #map { background: #e9ebee; }
     padding: 4px;
   }
   .toolbar button { flex: 1 1 auto; padding: 8px 4px; font-size: 13px; }
+  .leaflet-container .leaflet-control-attribution { font-size: 9px; }
   .legend { top: auto; right: 10px; bottom: max(86px, calc(env(safe-area-inset-bottom) + 76px)); }
 }
 

@@ -9,7 +9,7 @@
   };
   var TILE_ATTRIBUTION =
     'Wind: <a href="https://open-meteo.com/">Open-Meteo</a> | ' +
-    'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
+    'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; OSM';
   var BACKGROUND = { dark: '#202226', light: '#e9ebee' };
 
   var statusEl = document.getElementById('status');
@@ -18,6 +18,8 @@
   var printBtn = document.getElementById('btn-print');
   var locateBtn = document.getElementById('btn-locate');
   var printImg = document.getElementById('print-image');
+  var pauseBtn = document.getElementById('btn-pause');
+  var paused = false;
 
   var state = loadState();
 
@@ -46,10 +48,10 @@
     .then(function (res) { return res.json(); })
     .then(function (data) {
       borders.addLayer(L.geoJSON({ type: 'MultiLineString', coordinates: data.countries }, {
-        renderer: borderRenderer, interactive: false, style: borderStyle(1.1)
+        renderer: borderRenderer, interactive: false, style: borderStyle(0.8)
       }));
       borders.addLayer(L.geoJSON({ type: 'MultiLineString', coordinates: data.states }, {
-        renderer: borderRenderer, interactive: false, style: borderStyle(0.7)
+        renderer: borderRenderer, interactive: false, style: borderStyle(0.5)
       }));
     })
     .catch(function () { /* the map still works without outlines */ });
@@ -83,6 +85,13 @@
         '<span class="arrow" style="transform:rotate(' + Math.round(from + 180) + 'deg)">&uarr;</span></div>'
       )
       .openOn(map);
+  });
+
+  pauseBtn.addEventListener('click', function () {
+    paused = !paused;
+    wind.setPaused(paused);
+    pauseBtn.textContent = paused ? 'Play' : 'Pause';
+    pauseBtn.setAttribute('aria-pressed', String(paused));
   });
 
   themeBtn.addEventListener('click', function () {
@@ -175,7 +184,7 @@
     return function () {
       return {
         color: state.theme === 'light' ? '#000' : '#fff',
-        opacity: state.theme === 'light' ? 0.45 : 0.4,
+        opacity: state.theme === 'light' ? 0.3 : 0.25,
         weight: weight
       };
     };
