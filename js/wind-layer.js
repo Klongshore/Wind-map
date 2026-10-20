@@ -1,20 +1,24 @@
 /*
  * Animated wind-particle layer for Leaflet, in the style of hint.fm/wind:
- * thousands of particles drift with the wind and leave fading trails.
+ * particles drift slowly with the wind, each drawing a long tapering trail
+ * from its recent path, so the flow patterns read clearly on screen and in
+ * saved or printed images.
  */
 (function (global) {
   'use strict';
 
   var CELL = 6;              // px size of the screen-space velocity lookup grid
-  var FADE = 0.94;           // how much of each trail survives a frame
-  var MAX_AGE = 90;          // frames before a particle is respawned
-  var SPEED_SCALE = 0.22;    // px per frame for each m/s of wind
+  var SPEED_SCALE = 0.12;    // px per step for each m/s of wind
+  var SAMPLE = 3;            // steps between remembered trail points
+  var TRAIL = 45;            // trail points kept per particle
+  var MAX_AGE = 600;         // steps before a particle is respawned
+  var SECTIONS = 4;          // trail drawn in parts, fainter towards the tail
   var MPH_PER_MS = 2.23694;
   var LEGEND_MAX_MPH = 40;
 
   // Black-and-white trails: faster wind draws brighter (or darker on the
   // light map), like hint.fm/wind.
-  var BUCKETS = 12;
+  var BUCKETS = 8;
 
   function trailColor(t, light) {
     t = Math.max(0, Math.min(1, t));
@@ -22,9 +26,18 @@
     return light ? 'rgba(20,20,20,' + alpha + ')' : 'rgba(255,255,255,' + alpha + ')';
   }
 
+  // colors[bucket][section]: speed sets the base strength, the tail fades out.
   function bucketColors(light) {
     var colors = [];
-    for (var b = 0; b < BUCKETS; b++) colors.push(trailColor(b / (BUCKETS - 1), light));
+    for (var b = 0; b < BUCKETS; b++) {
+      var row = [];
+      var base = 0.4 + 0.6 * (b / (BUCKETS - 1));
+      for (var k = 0; k < SECTIONS; k++) {
+        var alpha = (base * (k + 1) / SECTIONS).toFixed(3);
+        row.push(light ? 'rgba(20,20,20,' + alpha + ')' : 'rgba(255,255,255,' + alpha + ')');
+      }
+      colors.push(row);
+    }
     return colors;
   }
 
@@ -97,8 +110,8 @@
       this._buildGrid();
       this._spawnAll();
       if (this._paused) {
-        // Draw a still frame with full-length trails.
-        for (var f = 0; f < 60; f++) this._step();
+        // Draw a still frame (the trails were grown in _spawnAll).
+        this._draw();
         return;
       }
       this._running = true;
@@ -145,17 +158,25 @@
 
     _spawnAll: function () {
       var area = this._w * this._h;
-      var count = Math.round(Math.min(6000, Math.max(800, area / 230)));
+      var count = Math.round(Math.min(2500, Math.max(600, area / 450)));
       this._particles = new Array(count);
       for (var i = 0; i < count; i++) {
-        this._particles[i] = this._spawn({}, true);
+        this._particles[i] = this._spawn({
+          hx: new Float32Array(TRAIL),
+          hy: new Float32Array(TRAIL)
+        }, true);
       }
+      // Let the trails grow before the first frame is shown.
+      for (var f = 0; f < SAMPLE * TRAIL; f++) this._step();
     },
 
     _spawn: function (p, randomAge) {
       p.x = Math.random() * this._w;
       p.y = Math.random() * this._h;
       p.age = randomAge ? Math.floor(Math.random() * MAX_AGE) : 0;
+      p.len = 0;      // remembered points
+      p.head = 0;     // ring buffer slot for the next point
+      p.bucket = 0;
       return p;
     },
 
@@ -170,28 +191,19 @@
 
     _tick: function () {
       if (!this._running) return;
-      this._step();
+      // Step every other display frame: slower, calmer motion and half the work.
+      this._odd = !this._odd;
+      if (this._odd) {
+        this._step();
+        this._draw();
+      }
       var self = this;
       this._frame = requestAnimationFrame(function () { self._tick(); });
     },
 
-    // Advances every particle one frame and draws the new trail segments.
+    // Moves every particle one step and remembers its path.
     _step: function () {
-      var ctx = this._ctx;
-      var dpr = this._dpr;
       var g = this._grid;
-
-      // Fade existing trails.
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.fillStyle = 'rgba(0,0,0,' + FADE + ')';
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      var paths = [];
-      for (var k = 0; k < BUCKETS; k++) paths.push([]);
-
       var ps = this._particles;
       for (var n = 0; n < ps.length; n++) {
         var p = ps[n];
@@ -200,27 +212,63 @@
           this._spawn(p, false);
           continue;
         }
-        var nx = p.x + g.vx[i];
-        var ny = p.y + g.vy[i];
-        var t = (g.sp[i] * MPH_PER_MS) / LEGEND_MAX_MPH;
-        var bucket = Math.min(BUCKETS - 1, Math.floor(t * (BUCKETS - 1) + 0.5));
-        paths[bucket].push(p.x, p.y, nx, ny);
-        p.x = nx;
-        p.y = ny;
-      }
-
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      for (var bk = 0; bk < BUCKETS; bk++) {
-        var segs = paths[bk];
-        if (!segs.length) continue;
-        ctx.strokeStyle = this._colors[bk];
-        ctx.beginPath();
-        for (var s = 0; s < segs.length; s += 4) {
-          ctx.moveTo(segs[s], segs[s + 1]);
-          ctx.lineTo(segs[s + 2], segs[s + 3]);
+        if (p.age % SAMPLE === 0 || p.len === 0) {
+          p.hx[p.head] = p.x;
+          p.hy[p.head] = p.y;
+          p.head = (p.head + 1) % TRAIL;
+          if (p.len < TRAIL) p.len++;
         }
-        ctx.stroke();
+        p.x += g.vx[i];
+        p.y += g.vy[i];
+        var t = (g.sp[i] * MPH_PER_MS) / LEGEND_MAX_MPH;
+        p.bucket = Math.min(BUCKETS - 1, Math.floor(t * (BUCKETS - 1) + 0.5));
+      }
+    },
+
+    // Redraws every trail from scratch, grouped by color for speed.
+    _draw: function () {
+      var ctx = this._ctx;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.setTransform(this._dpr, 0, 0, this._dpr, 0, 0);
+      ctx.lineWidth = 1.4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      var ps = this._particles;
+      for (var b = 0; b < BUCKETS; b++) {
+        for (var k = 0; k < SECTIONS; k++) {
+          ctx.beginPath();
+          var any = false;
+          for (var n = 0; n < ps.length; n++) {
+            var p = ps[n];
+            if (p.bucket !== b || p.len < 2) continue;
+            // Points oldest to newest, then the live position.
+            var total = p.len + 1;
+            var from = Math.floor(k * (total - 1) / SECTIONS);
+            var to = Math.floor((k + 1) * (total - 1) / SECTIONS);
+            if (to <= from) continue;
+            var oldest = (p.head - p.len + TRAIL) % TRAIL;
+            for (var j = from; j <= to; j++) {
+              var x, y;
+              if (j === p.len) {
+                x = p.x;
+                y = p.y;
+              } else {
+                var slot = (oldest + j) % TRAIL;
+                x = p.hx[slot];
+                y = p.hy[slot];
+              }
+              if (j === from) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            any = true;
+          }
+          if (any) {
+            ctx.strokeStyle = this._colors[b][k];
+            ctx.stroke();
+          }
+        }
       }
     }
   });
