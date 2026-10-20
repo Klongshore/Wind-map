@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Wind Map</title>
+  <meta name="description" content="Live animated wind map. Zoom in and out, save as an image, or print.">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="map" aria-label="Wind map"></div>
+
+  <header class="panel title-panel">
+    <h1>Wind Map</h1>
+    <p id="status" class="status" aria-live="polite">Loading wind…</p>
+  </header>
+
+  <div class="panel toolbar" role="toolbar" aria-label="Map tools">
+    <button id="btn-pause" type="button" title="Pause or play the wind animation" aria-pressed="false">Pause</button>
+    <button id="btn-locate" type="button" title="Go to my location">Locate</button>
+    <button id="btn-theme" type="button" title="Switch light / dark map">Light map</button>
+    <button id="btn-save" type="button" title="Save the map as a PNG image">Save image</button>
+    <button id="btn-print" type="button" title="Print the map">Print</button>
+  </div>
+
+  <div class="panel legend" aria-label="Wind speed legend">
+    <span>Calm</span>
+    <span class="legend-bar"></span>
+    <span id="legend-max">40+ mph</span>
+  </div>
+
+  <img id="print-image" alt="Wind map snapshot for printing">
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="js/wind-field.js"></script>
+  <script src="js/wind-layer.js"></script>
+  <script src="js/snapshot.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
