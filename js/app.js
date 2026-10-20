@@ -1,14 +1,15 @@
 (function () {
   'use strict';
 
+  // Esri's grey canvas basemaps: free, no key, and they allow cross-origin use,
+  // which the save/print snapshot needs.
   var TILES = {
-    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    dark: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    light: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
   };
   var TILE_ATTRIBUTION =
     'Wind: <a href="https://open-meteo.com/">Open-Meteo</a> | ' +
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-    '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+    'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
   var BACKGROUND = { dark: '#202226', light: '#e9ebee' };
 
   var statusEl = document.getElementById('status');
@@ -31,8 +32,7 @@
 
   var tiles = L.tileLayer(TILES[state.theme], {
     attribution: TILE_ATTRIBUTION,
-    subdomains: 'abcd',
-    maxZoom: 19,
+    maxZoom: 16,
     crossOrigin: 'anonymous'
   }).addTo(map);
 
@@ -116,6 +116,7 @@
   }
 
   function loadWind() {
+    if (field && field.covers(map.getBounds())) return;
     if (pending) pending.abort();
     var ctrl = new AbortController();
     pending = ctrl;
@@ -131,7 +132,9 @@
       .catch(function (err) {
         if (err.name === 'AbortError') return;
         pending = null;
-        setStatus('Could not load wind: ' + err.message);
+        setStatus(field
+          ? 'Showing earlier wind. The wind service said: ' + err.message
+          : 'Could not load wind: ' + err.message);
       });
   }
 
@@ -144,7 +147,7 @@
       background: BACKGROUND[state.theme],
       light: state.theme === 'light',
       title: 'Wind Map · ' + describeTime(field.time),
-      subtitle: 'Wind: Open-Meteo · Map: © OpenStreetMap contributors, © CARTO'
+      subtitle: 'Wind: Open-Meteo · Map: © Esri, HERE, Garmin, © OpenStreetMap contributors'
     });
     if (shot.tilesDropped) setStatus('Map tiles could not be included; saved wind only.');
     return shot;

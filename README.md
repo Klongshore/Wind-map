@@ -13,7 +13,7 @@ Thousands of particles drift with the current surface wind, coloured from calm
 - The address bar keeps the current view, so a copied link opens the same map.
 
 Wind data is the current 10 m wind from [Open-Meteo](https://open-meteo.com/)
-(free, no API key). Map tiles are © OpenStreetMap contributors, © CARTO.
+(free, no API key). Map tiles are Esri's grey canvas basemaps (no key needed).
 
 ## Running it
 

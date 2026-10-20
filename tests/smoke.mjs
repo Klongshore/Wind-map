@@ -65,10 +65,15 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.route('https://*.basemaps.cartocdn.com/**', (route) =>
+    await page.route('https://server.arcgisonline.com/**', (route) =>
       route.fulfill({ status: 200, contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile }));
+    let refuse = false;
     await page.route('https://api.open-meteo.com/**', (route) => {
       apiCalls++;
+      if (refuse) {
+        return route.fulfill({ status: 429, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({ error: true, reason: 'Minutely API request limit exceeded.' }) });
+      }
       const u = new URL(route.request().url());
       const lats = u.searchParams.get('latitude').split(',').map(Number);
       const lngs = u.searchParams.get('longitude').split(',').map(Number);
@@ -113,6 +118,19 @@ try {
     assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('map')).display), 'none');
     assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('print-image')).display), 'block');
     await page.emulateMedia({ media: 'screen' });
+
+    // A refused request keeps the earlier wind on screen. (The world view
+    // already has global data, so zooming out there needs no new request.)
+    if (tag !== 'world') {
+      refuse = true;
+      for (let i = 0; i < 3; i++) {
+        await page.evaluate(() => document.querySelector('.leaflet-control-zoom-out').click());
+        await page.waitForTimeout(400);
+      }
+      await page.waitForFunction(() => /earlier wind/.test(document.getElementById('status').textContent), null, { timeout: 10000 });
+      assert.equal(await page.evaluate(() => document.querySelector('.wind-canvas').style.visibility), 'visible');
+      refuse = false;
+    }
 
     // Light theme toggles.
     await page.click('#btn-theme');

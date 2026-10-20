@@ -78,6 +78,21 @@
     return { u: u, v: v, speed: Math.sqrt(u * u + v * v) };
   };
 
+  /*
+   * True when this field already covers `bounds` with enough detail, so the
+   * view can be redrawn without asking the server again.
+   */
+  WindField.prototype.covers = function (bounds) {
+    var south = Math.max(bounds.getSouth(), -MAX_LAT);
+    var north = Math.min(bounds.getNorth(), MAX_LAT);
+    var west = bounds.getWest();
+    var east = bounds.getEast();
+    if (south < this.south || north > this.north) return false;
+    if (!this.global && (west < this.west || east > this.east)) return false;
+    // Too coarse once the view is much smaller than a few grid cells.
+    return (north - south) > this.dLat * 1.5 || this.dLat < 0.1;
+  };
+
   function bilerp(a00, a01, a10, a11, fx, fy) {
     var top = a00 + (a01 - a00) * fx;
     var bottom = a10 + (a11 - a10) * fx;
@@ -93,8 +108,9 @@
     var north = clamp(bounds.getNorth(), -MAX_LAT, MAX_LAT);
     var west = bounds.getWest();
     var east = bounds.getEast();
-    var latPad = (north - south) * 0.15 || 1;
-    var lngPad = (east - west) * 0.15 || 1;
+    // Generous padding so small pans and zooms can reuse the same data.
+    var latPad = (north - south) * 0.25 || 1;
+    var lngPad = (east - west) * 0.25 || 1;
     south = clamp(south - latPad, -MAX_LAT, MAX_LAT);
     north = clamp(north + latPad, -MAX_LAT, MAX_LAT);
     west -= lngPad;
@@ -105,12 +121,13 @@
     if (global) {
       west = -180;
       east = 180;
-      rows = 15;
-      cols = 24;
+      rows = 11;
+      cols = 18;
     } else {
       var aspect = (east - west) / Math.max(north - south, 0.01);
-      rows = 11;
-      cols = clamp(Math.round(rows * aspect), 8, 18);
+      // Open-Meteo counts every grid point as one API call, so keep the grid small.
+      rows = 10;
+      cols = clamp(Math.round(rows * aspect), 6, 15);
       // Snap to a coarse grid so small pans can reuse cached data.
       var step = Math.max((east - west) / (cols - 1), (north - south) / (rows - 1));
       var snap = Math.pow(10, Math.floor(Math.log10(step)));
