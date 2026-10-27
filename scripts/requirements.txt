@@ -3,5 +3,5 @@
 numpy==2.5.4
 pygrib==2.1.8
 pyproj==3.8.0
-certifi==2026.10.19
+certifi==2026.10.23
 packaging==26.3
